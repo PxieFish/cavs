@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
+import subprocess
 
 parser = argparse.ArgumentParser(description='Generates a pipeine for downloading data from GenBank and RefSeq.')
 parser.add_argument('integers', metavar='N', type=int, nargs='+',
@@ -14,8 +15,10 @@ print(args.accumulate(args.integers))
 
 # get files from 
 
-#make temporary directoty
+#make temporary directory
 
+#out = subprocess.run(["cat", "/home/cavs/demofile3.txt"], capture_output=True)
+#print("program output:", out)
 
 #download files to temporary directoy
 #curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > files.list.txt
@@ -23,16 +26,18 @@ print(args.accumulate(args.integers))
 #get 
 
 
-
-curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > files.list.txt
-
-
-cat files.list.txt   | grep -P "gbvrl\d+.seq.gz"  | grep gbvrl1.seq.gz
+out = subprocess.run(["curl", "ftp://ftp.ncbi.nlm.nih.gov/genbank/", "--user", "ftp:"], capture_output=True)
+print("program output:", out)
 
 
-wget ftp://ftp.ncbi.nlm.nih.gov/genbank/gbvrl1.seq.gz
+def execute() :
+	
+
+#curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > files.list.txt
+#cat files.list.txt   | grep -P "gbvrl\d+.seq.gz"  | grep gbvrl1.seq.gz
+#wget ftp://ftp.ncbi.nlm.nih.gov/genbank/gbvrl1.seq.gz
 
 
-f = open("demofile3.txt", "w")
-f.write("Woops! I have deleted the content!")
-f.close()
+#f = open("demofile3.txt", "w")
+#f.write("Woops! I have deleted the content!")
+#f.close()
