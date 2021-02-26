@@ -43,3 +43,6 @@
 #Fastq file can be uploaded to Genome Detective Virus Tool for analysis (www.genomedetective.com)
 #
 #
+ONT calling
+
+nohup /usr/local/ont-guppy-cpu/bin/guppy_basecaller -i /data/ngs/ONT11/fast5 -r -s /home/cavs/20200226_nanopore_fastq_generation/gbc_output --flowcell FLO-MIN106 --kit SQK-LSK109 --num_callers 4 --cpu_threads_per_caller 2 > gbc.log 2> gbc.err &
