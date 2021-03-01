@@ -46,3 +46,19 @@
 ONT calling
 
 nohup /usr/local/ont-guppy-cpu/bin/guppy_basecaller -i /data/ngs/ONT11/fast5 -r -s /home/cavs/20200226_nanopore_fastq_generation/gbc_output --flowcell FLO-MIN106 --kit SQK-LSK109 --num_callers 4 --cpu_threads_per_caller 2 > gbc.log 2> gbc.err &
+
+nohup /usr/local/ont-guppy-cpu/bin/guppy_barcoder -i gbc_output -s guppy_barcoder_output --barcode_kits EXP-NBD104 -t 8 > guppy_barcoder.log 2> guppy_barcoder.err &
+
+
+#!/bin/sh
+
+for i in barcode*
+do
+	if [ -d $i ]
+	then
+		sample=${i/barcode/}
+		echo "Processing barcode directory ${i} for sample ${sample}"
+		cat "${i}/"*.fastq > "B${sample}.fastq"
+		bgzip -f "B${sample}.fastq"
+	fi
+done
