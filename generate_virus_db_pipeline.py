@@ -24,13 +24,17 @@ print(args.accumulate(args.integers))
 #curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > files.list.txt
 
 #get 
+#curl ftp://ftp.ncbi.nlm.nih.gov/genbank/GB_Release_Number  --user ftp:
+
+version = subprocess.run(["curl", "ftp://ftp.ncbi.nlm.nih.gov/genbank/GB_Release_Number", "--user", "ftp:"], capture_output=True)
+print("gb version:", version)
+	
+	
+#out = subprocess.run(["curl", "ftp://ftp.ncbi.nlm.nih.gov/genbank/", "--user", "ftp:"], capture_output=True)
+#print("program output:", out)
 
 
-out = subprocess.run(["curl", "ftp://ftp.ncbi.nlm.nih.gov/genbank/", "--user", "ftp:"], capture_output=True)
-print("program output:", out)
-
-
-def execute() :
+#def execute() :
 	
 
 #curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > files.list.txt
