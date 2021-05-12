@@ -13,15 +13,22 @@ use Pod::Usage;
 generate_nanopore_fastq_pipeline_makefile
 
 =head1 SYNOPSIS
+
  generate_nanopore_fastq_pipeline_makefile [options]
-  -s     sample file list giving the location of each sample
-         column 1: sample name
-         column 2: path of bam file
-  -w     interval width
+  -i     FAST5 directory
+  -s     sample file     
+         column 1: sample ID
+         column 2: nanopore barcode
+  -f     flow cell 
+  -l     ligation kit
+  -b     barcode kit
   -o     output directory
   -m     make file name
+                
 =head1 DESCRIPTION
+
 This script implements the pipeline for extracting sequences from nanopore raw data.
+
 =cut
 
 my $help;
@@ -32,12 +39,14 @@ my $makeFile = "generate_nanopore_fastq.mk";
 my $flowCell = "FLO-MIN106";
 my $ligationKit = "SQK-LSK109";
 my $barcodeKit = "EXP-NBD104";
+my $dataDir;
 
 #initialize options
 Getopt::Long::Configure ('bundling');
 
 if(!GetOptions ('h'=>\$help,
                 'i=s'=>\$inputFAST5Dir,
+                'd=s'=>\$dataDir,
                 'f:s'=>\$flowCell,
                 'l:s'=>\$ligationKit,
                 'b:s'=>\$barcodeKit,
@@ -46,6 +55,7 @@ if(!GetOptions ('h'=>\$help,
                 'm:s'=>\$makeFile
                )
   || !defined($outputDir)
+  || !defined($dataDir)
   || !defined($inputFAST5Dir)
   || !defined($sampleFile))
 {
@@ -59,11 +69,15 @@ if(!GetOptions ('h'=>\$help,
     }
 }
 
+
+
+
 $makeFile = "$outputDir/$makeFile";
 
 #programs
-my $guppy_base_caller = "/usr/local/ont-guppy-4.5.4/bin/guppy_basecaller";
-my $guppy_barcoder = "/usr/local/ont-guppy-4.5.4/bin/guppy_barcoder";
+my $guppyBaseCaller = "/usr/local/ont-guppy-4.5.4/bin/guppy_basecaller";
+my $guppyBarcoder = "/usr/local/ont-guppy-4.5.4/bin/guppy_barcoder";
+my $nanoplot = "/usr/local/bin/NanoPlot";
 
 printf("generate_nanopore_fastqc_pipeline_makefile.pl\n");
 printf("\n");
@@ -71,7 +85,7 @@ printf("options: output dir           %s\n", $outputDir);
 printf("         make file            %s\n", $makeFile);
 printf("         fast5 directory      %s\n", $inputFAST5Dir);
 printf("         flow cell            %s\n", $flowCell);
-printf("         ligation kit         %s\n", $ligationCell);
+printf("         ligation kit         %s\n", $ligationKit);
 printf("         barcode kit          %s\n", $barcodeKit);
 printf("         sample file          %s\n", $sampleFile);
 printf("\n");
@@ -113,49 +127,73 @@ while (<SA>)
 }
 close(SA);
 
+print "read in " . scalar(@SAMPLE) . " samples\n";
+
+my $inputDir;
+
 ############################
 #call bases from FAST5 files
 ############################
 $inputDir = $inputFAST5Dir;
-$tgt = "$outputDir/guppy_basecalls";
+$tgt = "$outputDir/guppy_basecaller.OK";
 $dep = "";
-$log = "$outputDir/split.log";
-$err = "$outputDir/split.err";
+$log = "$outputDir/guppy_basecaller.log";
+$err = "$outputDir/guppy_basecaller.err";
 #for CPU calling
 #@cmd = ("$guppyBasecaller -i $inputDir -r -s $outputDir --flowcell $flowcell --kit $barcodekit --num_callers 4 --cpu_threads_per_caller 2");
-@cmd = ("$guppyBasecaller -i $inputDir -r -s $outputDir --flowcell $flowCell --kit $barcodekit -x auto");
-makeJob("local", $tgt, $dep, $log, $err, @cmd);
+@cmd = ("$guppyBaseCaller -i $inputFAST5Dir -r -s $outputDir/basecalls --flowcell $flowCell --kit $ligationKit -x auto > $log 2> $err");
+makeJob("local", $tgt, $dep, @cmd);
   
 ######################
 #demultiplex sequences 
 ######################
 $inputDir = $inputFAST5Dir;
-$outputDir = $inputFAST5Dir;
-$tgt = "$outputDir/guppy_basecalls";
-$dep = "";
-$log = "$outputDir/split.log";
-$err = "$outputDir/split.err";
+$tgt = "$outputDir/guppy_barcoder.OK";
+$dep = "$outputDir/guppy_basecaller.OK";
+$log = "$outputDir/guppy_barcoder.log";
+$err = "$outputDir/guppy_barcoder.err";
+@cmd = ("$guppyBarcoder -i $outputDir/basecalls -r -s $outputDir/demux_fastq --barcode_kits $barcodeKit -t 2 > $log 2> $err");
+makeJob("local", $tgt, $dep, @cmd);
 
-
-#guppy_barcoder --input_path <folder containing FASTQ files> --save_path <output folder> --config configuration.cfg --barcode_kits EXP-NBD104
-
-@cmd = ("$guppyBarcoder -i $inputDir -r -s $outputDir --flowcell $flowCell --kit $barcodekit");
-makeJob("local", $tgt, $dep, $log, $err, @cmd);
-
-##################
-#combine sequences 
-##################
-for my $sample (@SAMPLES)
+#################################
+#combine sequences and copy to 
+#################################
+mkpath("$outputDir/sample_fastq");
+for my $i (0..$#SAMPLE)
 {
-    $inputDir = $inputFAST5Dir;
-    $outputDir = $inputFAST5Dir;
-    $tgt = "$outputDir/guppy_basecalls";
-    $dep = "";
-    $log = "$outputDir/split.log";
-    $err = "$outputDir/split.err";
-    @cmd = ("cat "$SAMPLES{BARCODE}/"*.fastq | bgzip -c > "B${sample}.fastq.gz"");
-    makeJob("local", $tgt, $dep, $log, $err, @cmd);
+    my $j = $i+1;
+    my $sampleID = $SAMPLE[$i];
+    my $fastqOutputDir = "$dataDir/" . $j . "_$sampleID"; 
+    mkpath($fastqOutputDir);
+    $inputDir = "$outputDir/demux_fastq/barcode" . ($j<=9? "0" : "") . $j;
+    $tgt = "$outputDir/sample_fastq/$j.join.OK";
+    $dep = "$outputDir/guppy_barcoder.OK";
+    $err = "$outputDir/sample_fastq/$j.join.err";
+    @cmd = ("cat $inputDir/*.fastq | bgzip -c > $fastqOutputDir/" . $j . "_$sampleID.fastq.gz  2> $err");
+    makeJob("local", $tgt, $dep, @cmd);
 }
+
+#########################
+#generate nanoplot output
+#########################
+for my $i (0..$#SAMPLE)
+{
+    my $j = $i+1;
+    my $sampleID = $SAMPLE[$i];
+    my $fastqOutputDir = "$dataDir/" . $j . "_$sampleID"; 
+    my $inputFASTQFile = "$fastqOutputDir/" . $j . "_$sampleID.fastq.gz";
+    my $outputNanoplotResultDir = "$fastqOutputDir/nanoplot_result";
+    $tgt = "$outputDir/sample_fastq/$j.nanoplot.OK";
+    $dep = "$outputDir/sample_fastq/$j.join.OK";
+    $err = "$outputDir/sample_fastq/$j.nanoplot.err";
+    @cmd = ("$nanoplot --fastq $inputFASTQFile -o $outputNanoplotResultDir 2> $err");
+    makeJob("local", $tgt, $dep, @cmd);
+}
+
+
+#######################
+#generate multiqc output?
+#######################
 
 #*******************
 #Write out make file
@@ -207,7 +245,14 @@ sub makeLocalStep
     my $cmd = "";
     for my $c (@cmd)
     {
-        $cmd .= "\tset -o pipefail; " . $c . "\n";
+        if ($cmd =~ /\|/)
+        {
+            $cmd .= "\tset -o pipefail; " . $c . "\n";
+        }
+        else
+        {
+            $cmd .= "\t$c\n";
+        }
     }
     $cmd .= "\ttouch $tgt\n";
     push(@cmds, $cmd);
