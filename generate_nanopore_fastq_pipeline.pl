@@ -27,10 +27,11 @@ This script implements the pipeline for extracting sequences from nanopore raw d
 my $help;
 my $sampleFile;
 my $outputDir;
-my $makeFile;
 my $inputFAST5Dir;
+my $makeFile = "generate_nanopore_fastq.mk";
 my $flowCell = "FLO-MIN106";
-my $barcodeKit = "SQK-LSK109";
+my $ligationKit = "SQK-LSK109";
+my $barcodeKit = "EXP-NBD104";
 
 #initialize options
 Getopt::Long::Configure ('bundling');
@@ -38,6 +39,7 @@ Getopt::Long::Configure ('bundling');
 if(!GetOptions ('h'=>\$help,
                 'i=s'=>\$inputFAST5Dir,
                 'f:s'=>\$flowCell,
+                'l:s'=>\$ligationKit,
                 'b:s'=>\$barcodeKit,
                 's=s'=>\$sampleFile,
                 'o=s'=>\$outputDir,
@@ -45,8 +47,7 @@ if(!GetOptions ('h'=>\$help,
                )
   || !defined($outputDir)
   || !defined($inputFAST5Dir)
-  || !defined($sampleFile)
-  || !defined($makeFile))
+  || !defined($sampleFile))
 {
     if ($help)
     {
@@ -69,7 +70,8 @@ printf("\n");
 printf("options: output dir           %s\n", $outputDir);
 printf("         make file            %s\n", $makeFile);
 printf("         fast5 directory      %s\n", $inputFAST5Dir);
-printf("         flow cell            %s\n", $flowcell);
+printf("         flow cell            %s\n", $flowCell);
+printf("         ligation kit         %s\n", $ligationCell);
 printf("         barcode kit          %s\n", $barcodeKit);
 printf("         sample file          %s\n", $sampleFile);
 printf("\n");
@@ -121,7 +123,7 @@ $log = "$outputDir/split.log";
 $err = "$outputDir/split.err";
 #for CPU calling
 #@cmd = ("$guppyBasecaller -i $inputDir -r -s $outputDir --flowcell $flowcell --kit $barcodekit --num_callers 4 --cpu_threads_per_caller 2");
-@cmd = ("$guppyBasecaller -i $inputDir -r -s $outputDir --flowcell $flowcell --kit $barcodekit -x auto");
+@cmd = ("$guppyBasecaller -i $inputDir -r -s $outputDir --flowcell $flowCell --kit $barcodekit -x auto");
 makeJob("local", $tgt, $dep, $log, $err, @cmd);
   
 ######################
@@ -133,10 +135,16 @@ $tgt = "$outputDir/guppy_basecalls";
 $dep = "";
 $log = "$outputDir/split.log";
 $err = "$outputDir/split.err";
-@cmd = ("$guppyBarcoder -i $inputDir -r -s $outputDir --flowcell $flowcell --kit $barcodekit -x auto");
+
+
+#guppy_barcoder --input_path <folder containing FASTQ files> --save_path <output folder> --config configuration.cfg --barcode_kits EXP-NBD104
+
+@cmd = ("$guppyBarcoder -i $inputDir -r -s $outputDir --flowcell $flowCell --kit $barcodekit");
 makeJob("local", $tgt, $dep, $log, $err, @cmd);
 
-#nohup /usr/local/ont-guppy-cpu/bin/guppy_barcoder -i $inputDir -s guppy_barcoder_output --barcode_kits EXP-NBD104 -t 8 > guppy_barcoder.log 2> guppy_barcoder.err &
+##################
+#combine sequences 
+##################
 for my $sample (@SAMPLES)
 {
     $inputDir = $inputFAST5Dir;
@@ -145,7 +153,7 @@ for my $sample (@SAMPLES)
     $dep = "";
     $log = "$outputDir/split.log";
     $err = "$outputDir/split.err";
-    @cmd = ("cat "${i}/"*.fastq | bgzip -c > "B${sample}.fastq.gz"");
+    @cmd = ("cat "$SAMPLES{BARCODE}/"*.fastq | bgzip -c > "B${sample}.fastq.gz"");
     makeJob("local", $tgt, $dep, $log, $err, @cmd);
 }
 
