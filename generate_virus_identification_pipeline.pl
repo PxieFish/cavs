@@ -10,11 +10,11 @@ use Pod::Usage;
 
 =head1 NAME
 
-generate_nanopore_fastq_pipeline_makefile
+generate_virus_identification_pipeline_makefile
 
 =head1 SYNOPSIS
 
- generate_nanopore_fastq_pipeline_makefile [options]
+ generate_virus_identification_pipeline_makefile [options]
   -i     FAST5 directory
   -s     sample file     
          column 1: sample ID
@@ -35,7 +35,7 @@ my $help;
 my $sampleFile;
 my $outputDir;
 my $inputFAST5Dir;
-my $makeFile = "generate_nanopore_fastq.mk";
+my $makeFile = "virus_identification_pipeline.mk";
 my $flowCell = "FLO-MIN106";
 my $ligationKit = "SQK-LSK109";
 my $barcodeKit = "EXP-NBD104";
@@ -79,7 +79,7 @@ my $guppyBaseCaller = "/usr/local/ont-guppy-4.5.4/bin/guppy_basecaller";
 my $guppyBarcoder = "/usr/local/ont-guppy-4.5.4/bin/guppy_barcoder";
 my $nanoplot = "/usr/local/bin/NanoPlot";
 
-printf("generate_nanopore_fastqc_pipeline_makefile.pl\n");
+printf("generate_virus_identification_pipeline_makefile.pl\n");
 printf("\n");
 printf("options: output dir           %s\n", $outputDir);
 printf("         make file            %s\n", $makeFile);
