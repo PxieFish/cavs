@@ -16,6 +16,12 @@ generate_download_virus_databases_pipeline_makefile
 
  generate_download_virus_databases_pipeline_makefile [options]
   -m     make file name
+  -d     database (refseq|genbank)
+  -t     taxa 
+         refseq (archaea|bacteria|fungi|invertebrate|
+           mitochondrion|plant|plasmid|protozoa|plastid|
+           viral|vertebrate_mammalian|vertebrate_other)
+         genbank (bct|vrl|phg|inv|pln|mam|vrt|pri|rod|)
 
 =head1 DESCRIPTION
 
@@ -77,9 +83,12 @@ unless (-e "$outputDir/prep_virus_files.OK")
 {
     my $gbv = int(`curl ftp://ftp.ncbi.nlm.nih.gov/genbank/GB_Release_Number`);
     mkpath("$outputDir/genbank/$gbv/virus");   
-    `curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > "$outputDir/genbank/$gbv/virus.txt"`;
+    `curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > "$outputDir/genbank/$gbv/list.txt"`;
     `touch "$outputDir/prep_virus_files.OK"`;
 }
+
+
+#https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER
 
 
 #cat files.txt | grep seq | tr -s ' ' '\t' | cut -f 9 | grep vrl | sort -V
