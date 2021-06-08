@@ -10,7 +10,7 @@ use Pod::Usage;
 
 =head1 NAME
 
-generate_download_virus_databases_pipeline_makefile
+generate_download_databases_pipeline
 
 =head1 SYNOPSIS
 
@@ -31,6 +31,8 @@ This script implements the pipeline for downloading virus database.
 
 my $help;
 my $database;
+my $version;
+my $taxa;
 my $outputDir = "/home/cavs/db_download";
 my $makeFile = "download_virus_databases_pipeline.mk";
 
@@ -44,8 +46,11 @@ Getopt::Long::Configure ('bundling');
 
 if(!GetOptions ('h'=>\$help,
                 'd=s'=>\$database,
+                't=s'=>\$taxa,
                 'm:s'=>\$makeFile
                )
+  || !defined($database)
+  || !defined($taxa)
   || !defined($makeFile))
 {
     if ($help)
@@ -83,21 +88,53 @@ my @cmd;
 ###############################
 #get current version of genbank 
 ###############################
-unless (-e "$outputDir/prep_virus_files.OK")
-{
-    my $gbv = int(`curl ftp://ftp.ncbi.nlm.nih.gov/genbank/GB_Release_Number`);
-    mkpath("$outputDir/genbank/$gbv/virus");   
-    `curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > "$outputDir/genbank/$gbv/list.txt"`;
-    `touch "$outputDir/prep_virus_files.OK"`;
-}
+#unless (-e "$outputDir/prep_virus_files.OK")
+#{
+#    my $gbv = int(`curl ftp://ftp.ncbi.nlm.nih.gov/genbank/GB_Release_Number`);
+#    mkpath("$outputDir/genbank/$gbv/virus");   
+#    `curl ftp://ftp.ncbi.nlm.nih.gov/genbank/ --user ftp: > "$outputDir/genbank/$gbv/list.txt"`;
+#    `touch "$outputDir/prep_virus_files.OK"`;
+#}
 
-if ($database wq "refseq")
+if ($database eq "refseq")
 {
-    $version = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER`;
+#    $version = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER 2>/dev/null`;
 
-    print $version;
+    $version = 206;
+    print $version . "\n";
+    
+    mkpath("$outputDir/ref/refseq/$version");
+    mkpath("$outputDir/temp");
+    
+
+    my $dump;
+#    $dump = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/$taxa/  2>/dev/null > $outputDir/temp/test.txt`;
+    
+#    if ()
+#    print "\ndump: " . $dump . "\n";   
+    
+    open(IN, "$outputDir/temp/test.txt");
+    while (<IN>)
+    {
+        if (/([^\"]*fna\.gz)/)
+        {
+            print "$1\n";
+            
+            print "wget https://ftp.ncbi.nlm.nih.gov/refseq/release/$taxa/$1\n";
+            
+#            wget https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/viral.1.1.genomic.fna.gz -P /home/cavs/db_download/download
+            
+            $tgt = "$outputDir/download/$1.OK";
+            $dep = "";
+            @cmd = ("wget https://ftp.ncbi.nlm.nih.gov/refseq/release/$taxa/$1 -P $outputDir/download");
+            makeJob("local", $tgt, $dep, @cmd);
+    
+        }
+    }
+    
+    $makeFile = "download_" . $database . "_" . $taxa . "_database_pipeline.mk";
 }
-elsif ($database wq "genbank")
+elsif ($database eq "genbank")
 {
 
 }
@@ -108,7 +145,7 @@ else
 
 
 
-exit;
+exit(0);
 #https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER
 
 
