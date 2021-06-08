@@ -30,16 +30,20 @@ This script implements the pipeline for downloading virus database.
 =cut
 
 my $help;
-
+my $database;
 my $outputDir = "/home/cavs/db_download";
-my $genbankOutputDir = "/data/ref/virus/genbank";
-my $refseqOutputDir = "/data/ref/virus/refseq";
 my $makeFile = "download_virus_databases_pipeline.mk";
+
+#structure of reference databases
+#/ref
+#/ref/refseq
+my $refSeqCurrentVersionOutputDir = "$outputDir/ref/refseq/";
                 
 #initialize options
 Getopt::Long::Configure ('bundling');
 
 if(!GetOptions ('h'=>\$help,
+                'd=s'=>\$database,
                 'm:s'=>\$makeFile
                )
   || !defined($makeFile))
@@ -56,8 +60,8 @@ if(!GetOptions ('h'=>\$help,
 
 $makeFile = "$outputDir/$makeFile";
 
+
 #programs
-my $bowtie2 = "/app/bowtie2/2.29/bowtie2";
 
 printf("generate_download_virus_databases_pipeline_makefile.pl\n");
 printf("\n");
@@ -87,7 +91,24 @@ unless (-e "$outputDir/prep_virus_files.OK")
     `touch "$outputDir/prep_virus_files.OK"`;
 }
 
+if ($database wq "refseq")
+{
+    $version = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER`;
 
+    print $version;
+}
+elsif ($database wq "genbank")
+{
+
+}
+else
+{
+    die "Database: $database not recognized";
+}
+
+
+
+exit;
 #https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER
 
 

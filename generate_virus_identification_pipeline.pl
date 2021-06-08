@@ -69,7 +69,33 @@ if(!GetOptions ('h'=>\$help,
     }
 }
 
+#download uniprot
+wget https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
 
+
+
+>UniqueIdentifier ClusterName n=Members Tax=TaxonName TaxID=TaxonIdentifier RepID=RepresentativeMember
+Where:
+
+UniqueIdentifier is the primary accession number of the UniRef cluster.
+ClusterName is the name of the UniRef cluster.
+Members is the number of UniRef cluster members.
+TaxonName is the scientific name of the lowest common taxon shared by all UniRef cluster members.
+TaxonIdentifier is the NCBI taxonomy identifier of the lowest common taxon shared by all UniRef cluster members.
+RepresentativeMember is the entry name of the representative member of the UniRef cluster.
+Example:
+
+>UniRef50_Q9K794 Putative AgrB-like protein n=2 Tax=Bacillus TaxID=1386 RepID=AGRB_BACHD
+
+cat uniref90.sequence_headers.txt | grep virus | cut -f1 -d " " | sed -e "s/^>//" > virus_genomes.txt
+
+seqtk subseq uniref90.fasta.gz virus_genomes.txt  | gzip -c > uniprot.virus.fasta.gz
+
+wget https://hgdownload.soe.ucsc.edu/goldenPath/susScr11/bigZips/susScr11.fa.gz
+
+bwa index -a bwtsw susScr11.fa.gz 
+
+bwa mem -t 2 -M ref/susScr11.fa.gz 1_SIV-Hoff/SIV-Hoff_S1_L001_R1_001.fastq.gz  1_SIV-Hoff/SIV-Hoff_S1_L001_R2_001.fastq.gz  -o siv_hoff.bam
 
 
 $makeFile = "$outputDir/$makeFile";
