@@ -103,6 +103,7 @@ if ($database eq "refseq")
     $version = 206;
     print $version . "\n";
     
+    $refSeqCurrentVersionOutputDir = "$outputDir/ref/refseq/$version";
     mkpath("$outputDir/ref/refseq/$version");
     mkpath("$outputDir/temp");
     
@@ -113,6 +114,8 @@ if ($database eq "refseq")
 #    if ()
 #    print "\ndump: " . $dump . "\n";   
     
+    my $dbFASTAFiles = "";
+    my $dbFASTAFilesOK = "";
     open(IN, "$outputDir/temp/test.txt");
     while (<IN>)
     {
@@ -123,6 +126,8 @@ if ($database eq "refseq")
             print "wget https://ftp.ncbi.nlm.nih.gov/refseq/release/$taxa/$1\n";
             
 #            wget https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/viral.1.1.genomic.fna.gz -P /home/cavs/db_download/download
+            $dbFASTAFiles .= " $outputDir/download/$1";
+            $dbFASTAFilesOK .= " $outputDir/download/$1.OK";
             
             $tgt = "$outputDir/download/$1.OK";
             $dep = "";
@@ -131,6 +136,14 @@ if ($database eq "refseq")
     
         }
     }
+
+    #concatenate the sequences   
+    $tgt = "$outputDir/download/$1.OK";
+    $dep = "";
+    @cmd = ("zcat $dbFASTAFiles | gzip -c > $outputDir/ref/refseq/$version/seq.fasta.gz");
+    makeJob("local", $tgt, $dep, @cmd);
+    
+    
     
     $makeFile = "download_" . $database . "_" . $taxa . "_database_pipeline.mk";
 }
@@ -145,7 +158,7 @@ else
 
 
 
-exit(0);
+
 #https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER
 
 
@@ -176,7 +189,7 @@ print MAK "all: @tgts\n\n";
 #clean
 push(@tgts, "clean");
 push(@deps, "");
-push(@cmds, "\t-rm -rf $outputDir/*.* $outputDir/intervals/*.*");
+push(@cmds, "\t-rm -rf $outputDir/*.* ");
 
 for(my $i=0; $i < @tgts; ++$i) {
     print MAK "$tgts[$i] : $deps[$i]\n";
@@ -195,6 +208,8 @@ sub makeJob
 
     if ($method eq "local")
     {
+        print "adding steps\n";
+        
         my ($tgt, $dep, @rest) = @others;
         makeLocalStep($tgt, $dep, @rest);
     }
