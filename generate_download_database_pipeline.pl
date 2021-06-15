@@ -98,9 +98,9 @@ my @cmd;
 
 if ($database eq "refseq")
 {
-#    $version = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER 2>/dev/null`;
+    $version = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER 2>/dev/null`;
 
-    $version = 206;
+#    $version = 206;
     print $version . "\n";
     
     $refSeqCurrentVersionOutputDir = "$outputDir/ref/refseq/$version";
@@ -109,7 +109,7 @@ if ($database eq "refseq")
     
 
     my $dump;
-#    $dump = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/$taxa/  2>/dev/null > $outputDir/temp/test.txt`;
+    $dump = `curl https://ftp.ncbi.nlm.nih.gov/refseq/release/$taxa/  2>/dev/null > $outputDir/temp/test.txt`;
     
 #    if ()
 #    print "\ndump: " . $dump . "\n";   
@@ -138,13 +138,15 @@ if ($database eq "refseq")
     }
 
     #concatenate the sequences   
-    $tgt = "$outputDir/download/$1.OK";
+    $tgt = "$outputDir/ref/refseq/$version/seq.fasta.gz.OK";
     $dep = "";
     @cmd = ("zcat $dbFASTAFiles | gzip -c > $outputDir/ref/refseq/$version/seq.fasta.gz");
     makeJob("local", $tgt, $dep, @cmd);
     
+    #move to centralized database   
     
     
+       
     $makeFile = "download_" . $database . "_" . $taxa . "_database_pipeline.mk";
 }
 elsif ($database eq "genbank")
