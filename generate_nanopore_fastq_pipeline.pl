@@ -84,6 +84,7 @@ printf("\n");
 printf("options: output dir           %s\n", $outputDir);
 printf("         make file            %s\n", $makeFile);
 printf("         fast5 directory      %s\n", $inputFAST5Dir);
+printf("         data directory       %s\n", $dataDir);
 printf("         flow cell            %s\n", $flowCell);
 printf("         ligation kit         %s\n", $ligationKit);
 printf("         barcode kit          %s\n", $barcodeKit);
@@ -155,9 +156,9 @@ $err = "$outputDir/guppy_barcoder.err";
 @cmd = ("$guppyBarcoder -i $outputDir/basecalls -r -s $outputDir/demux_fastq --barcode_kits $barcodeKit -t 2 > $log 2> $err");
 makeJob("local", $tgt, $dep, @cmd);
 
-#################################
-#combine sequences and copy to 
-#################################
+####################################
+#combine sequences and copy to /data
+####################################
 mkpath("$outputDir/sample_fastq");
 for my $i (0..$#SAMPLE)
 {
@@ -172,6 +173,14 @@ for my $i (0..$#SAMPLE)
     @cmd = ("cat $inputDir/*.fastq | bgzip -c > $fastqOutputDir/" . $j . "_$sampleID.fastq.gz  2> $err");
     makeJob("local", $tgt, $dep, @cmd);
 }
+
+mkpath("$dataDir/unclassified");
+$inputDir = "$outputDir/demux_fastq/unclassified";
+$tgt = "$outputDir/sample_fastq/unclassified.join.OK";
+$dep = "$outputDir/guppy_barcoder.OK";
+$err = "$outputDir/sample_fastq/unclassified.join.err";
+@cmd = ("cat $inputDir/*.fastq | bgzip -c > $dataDir/unclassified/unclassified.fastq.gz  2> $err");
+makeJob("local", $tgt, $dep, @cmd);
 
 #########################
 #generate nanoplot output
@@ -189,7 +198,14 @@ for my $i (0..$#SAMPLE)
     @cmd = ("$nanoplot --fastq $inputFASTQFile -o $outputNanoplotResultDir 2> $err");
     makeJob("local", $tgt, $dep, @cmd);
 }
-
+ 
+my $inputFASTQFile = "$dataDir/unclassified/unclassified.fastq.gz";
+my $outputNanoplotResultDir = "$dataDir/unclassified/nanoplot_result";
+$tgt = "$outputDir/sample_fastq/unclassified.nanoplot.OK";
+$dep = "$outputDir/sample_fastq/unclassified.join.OK";
+$err = "$outputDir/sample_fastq/unclassified.nanoplot.err";
+@cmd = ("$nanoplot --fastq $inputFASTQFile -o $outputNanoplotResultDir 2> $err");
+makeJob("local", $tgt, $dep, @cmd);
 
 #######################
 #generate multiqc output?
