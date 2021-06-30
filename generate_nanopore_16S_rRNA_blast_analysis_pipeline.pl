@@ -10,18 +10,14 @@ use Pod::Usage;
 
 =head1 NAME
 
-generate_nanopore_16S_analyses_pipeline
+generate_nanopore_16S_rRNA_analyses_pipeline
 
 =head1 SYNOPSIS
 
- generate_nanopore_16S_analyses_pipeline [options]
-  -i     FAST5 directory
+ generate_nanopore_16S_rRNA_blast_analysis_pipeline [options]
   -s     sample file     
          column 1: sample ID
          column 2: nanopore barcode
-  -f     flow cell 
-  -l     ligation kit
-  -b     barcode kit
   -o     output directory
   -m     make file name
                 
@@ -62,11 +58,11 @@ if(!GetOptions ('h'=>\$help,
 $makeFile = "$outputDir/$makeFile";
 
 #programs
-my $blastn= "/usr/local/ont-guppy-4.5.4/bin/guppy_basecaller";
-my $guppyBarcoder = "/usr/local/ont-guppy-4.5.4/bin/guppy_barcoder";
+my $blastn= "/usr/local/ncbi-blast-2.11.0+/bin/blastn";
+my $seqtk = "/usr/local/seqtk-1.3/seqtk";
 my $nanoplot = "/usr/local/bin/NanoPlot";
 
-printf("generate_nanopore_fastqc_pipeline.pl\n");
+printf("generate_16S_rRNA_blast_analysis_pipeline.pl\n");
 printf("\n");
 printf("options: output dir           %s\n", $outputDir);
 printf("         make file            %s\n", $makeFile);
