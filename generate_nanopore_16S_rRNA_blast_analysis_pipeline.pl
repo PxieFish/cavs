@@ -30,9 +30,7 @@ This script implements the pipeline for mapping the reads against a 16S rRNA dat
 my $help;
 my $sampleFile;
 my $outputDir;
-my $inputFAST5Dir;
 my $makeFile = "nanopore_16S_rRNA_blast_analysis.mk";
-my $dataDir;
 
 #initialize options
 Getopt::Long::Configure ('bundling');
@@ -66,8 +64,6 @@ printf("generate_16S_rRNA_blast_analysis_pipeline.pl\n");
 printf("\n");
 printf("options: output dir           %s\n", $outputDir);
 printf("         make file            %s\n", $makeFile);
-printf("         fast5 directory      %s\n", $inputFAST5Dir);
-printf("         data directory       %s\n", $dataDir);
 printf("         sample file          %s\n", $sampleFile);
 printf("\n");
 
@@ -88,6 +84,7 @@ my @cmd;
 #################
 my %SAMPLE = ();
 my @SAMPLE = ();
+
 open(SA,"$sampleFile") || die "Cannot open $sampleFile\n";
 while (<SA>)
 {
@@ -101,45 +98,73 @@ while (<SA>)
             exit("$sampleID already exists. Please fix.");
         }
         
-        
-        #count files
-        
+        $SAMPLE{$sampleID} = ();
+        $SAMPLE{$sampleID}{FASTQ} = $fastqFile;      
         push(@SAMPLE, $sampleID);
     }
 }
 close(SA);
-
 print "read in " . scalar(@SAMPLE) . " samples\n";
 
-my $inputDir;
+#####################################
+#convert to fasta, filter then sample
+#####################################
+for my $sampleID (@SAMPLE)
+{
+    my $sampleDir = "$outputDir/samples/$sampleID";
+    mkpath($sampleDir);
+    my $outputFASTAFile = "$sampleDir/filtered.sampled.fa";
+    
+    $tgt = "$outputFASTAFile.OK";
+    $dep = "";
+    $log = "$outputFASTAFile.log";
+    $err = "$outputFASTAFile.err";
+    @cmd = ("$seqtk seq -a -L 1400 $SAMPLE{$sampleID}{FASTQ} | $seqtk sample - -s 13 10000 > $outputFASTAFile");
+    makeJob("local", $tgt, $dep, @cmd);
+}   
 
 ############################
-#call bases from FAST5 files
+#construct 16S rRNA database
 ############################
-#$inputDir = $inputFAST5Dir;
-#$tgt = "$outputDir/guppy_basecaller.OK";
-#$dep = "";
-#$log = "$outputDir/guppy_basecaller.log";
-#$err = "$outputDir/guppy_basecaller.err";
-##for CPU calling
-##@cmd = ("$guppyBasecaller -i $inputDir -r -s $outputDir --flowcell $flowcell --kit $barcodekit --num_callers 4 --cpu_threads_per_caller 2");
-#@cmd = ("$guppyBaseCaller -i $inputFAST5Dir -r -s $outputDir/basecalls --flowcell $flowCell --kit $ligationKit -x auto > $log 2> $err");
-#makeJob("local", $tgt, $dep, @cmd);
-
-#NCBI 16S rRNA
 #esearch -db nucleotide -query "33175[BioProject] OR 33317[BioProject] " | efetch -format fasta > out.fasta
 #makeblastdb -in 21940seq_16s.fasta  -dbtype nucl -parse_seqids
- 
 #export BLASTDB=/usr/local/ncbi-blast-2.11.0+/bin
-#seqtk seq -a
-#seqtk sample
-# 
-#blastn -db db/21940seq_16s.fasta -query 8_sambardeer_faeces.fasta -outfmt "6 stitle pident" -out 8.out -max_target_seqs 1  -num_threads 6
 
-#summarise results
-#cat 8.out | cut -f1  | perl -lane '{/([^\s]+) ([^\s]+)/; print "$1 $2"}' | sort | uniq -c | sort -nrk1
+################################
+#blast against 16S rRNA database
+################################
+for my $sampleID (@SAMPLE)
+{
+    my $sampleDir = "$outputDir/samples/$sampleID";
+    my $inputFASTAFile = "$sampleDir/filtered.sampled.fa";
+    my $outputBlastFile = "$sampleDir/blast_results.txt";
+    
+    $tgt = "$outputBlastFile.OK";
+    $dep = "$inputFASTAFile.OK";
+    $log = "$outputBlastFile.log";
+    $err = "$outputBlastFile.err";
+    @cmd = ("blastn -db $outputDir/db/21940seq_16s.fasta -query $inputFASTAFile -outfmt \"6 stitle pident\" -out $outputBlastFile -max_target_seqs 1 2> $err > $log");
+    makeJob("local", $tgt, $dep, @cmd);
+}   
 
-#store top 10,000 reads.
+########################
+#summarise blast results
+########################
+for my $sampleID (@SAMPLE)
+{
+    my $sampleDir = "$outputDir/samples/$sampleID";
+    my $inputTXTFile = "$sampleDir/blast_results.txt";
+    my $outputTXTFile = "$sampleDir/blast_results.summarised.txt";
+    
+    $tgt = "$outputTXTFile.OK";
+    $dep = "$inputTXTFile.OK";
+    $log = "$outputTXTFile.log";
+    $err = "$outputTXTFile.err";
+    @cmd = ("cat $inputTXTFile | cut -f1  | perl -lane '{/([^\s]+) ([^\s]+)/; print \"\$1 \$2\"}' | sort | uniq -c | sort -nrk1 > $outputTXTFile");
+    makeJob("local", $tgt, $dep, @cmd);
+}  
+
+
 
 
 ############################
