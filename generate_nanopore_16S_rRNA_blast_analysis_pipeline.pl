@@ -164,26 +164,6 @@ for my $sampleID (@SAMPLE)
     makeJob("local", $tgt, $dep, @cmd);
 }  
 
-
-
-
-############################
-#call bases from FAST5 files
-############################
-#$inputDir = $inputFAST5Dir;
-#$tgt = "$outputDir/guppy_basecaller.OK";
-##$dep = "";
-#$log = "$outputDir/guppy_basecaller.log";
-#$err = "$outputDir/guppy_basecaller.err";
-##for CPU calling
-##@cmd = ("$guppyBasecaller -i $inputDir -r -s $outputDir --flowcell $flowcell --kit $barcodekit --num_callers 4 --cpu_threads_per_caller 2");
-#@cmd = ("$guppyBaseCaller -i $inputFAST5Dir -r -s $outputDir/basecalls --flowcell $flowCell --kit $ligationKit -x auto > $log 2> $err");
-#makeJob("local", $tgt, $dep, @cmd);
-  
-
-
-
-
 #*******************
 #Write out make file
 #*******************
